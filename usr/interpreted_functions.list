@@ -1,0 +1,11 @@
+#These are the standard interpreted functions, shipped by default with CLR.
+#$(DEFAULT_DIR)/inv.clrf
+$(DEFAULT_DIR)/abs.clrf
+#$(DEFAULT_DIR)/arg.clrf
+#$(DEFAULT_DIR)/logbase.clrf
+#$(DEFAULT_DIR)/root.clrf
+#$(DEFAULT_DIR)/exp.clrf
+$(DEFAULT_DIR)/sqr.clrf
+#$(DEFAULT_DIR)/sqrt.clrf
+
+#User interpreted functions go here:

@@ -1,0 +1,72 @@
+CLR (Command Line RPN) interprets every token as one of the following: (And checks in the following order)
+
+    Key symbols:
+        + = Add
+        - = Subtract
+        * = Multiply
+        / = Divide
+        ^ = {y}^{x}
+        ; = ENTER
+        # = Comment (ignore remainder of line)
+        ------------------------------------- Version 2
+        {} = Create matrix
+        [] = index matrix
+        "" = Create string
+        , = Separate values in matrix
+
+    Number:
+        A numeric constant
+
+    Keywords:
+        FLP = Swap {x} & {y}
+        LSTX = Recall the last {x} and move to {x} reg
+        DN = Shift stack down one cycle
+        UP = Shift stack up one cycle
+        STK = Display stack contents
+        STO = Store {x} to variable
+        RCL = Recall variable to {x}
+        CLX = Clear {x}
+        CLREG = Clear all registers
+        LSVAR = List all variables
+        CLVAR = Clear all variables
+        CLEAR = Clear screen
+        HELP = Display a help screen
+        CD = (system) Change directory
+        PWD = (system) Print working directory
+        LS = (system) List directory contents
+        EXIT = Quit program
+        RUN = Run script
+        DELETE = Delete variable
+        ADDFN = Add function from file
+
+        LSFN = List function
+
+    Function:
+        Base Function: Functions that are hard-coded into CLR
+            sin = Compute sin{x}
+            cos = Compute cos{x}
+            tan = Compute tan{x}
+            asin = Compute sin^-1{x}
+            acos = Compute cos^-1{x}
+            atan = Compute tan^-1{x}
+            sinh = Compute hyp sin{x}
+            cosh = Compute hyp cos{x}
+            tanh = Compute hyp tan{x}
+            asinh = Compute hyp sin^-1{x}
+            acosh = Compute hyp cos^-1{x}
+            atanh = Compute hyp tan^-1{x}
+            log = Compute log base 10 of {x}
+            ln = Compute natural log of {x}
+
+        Interpreted Function: Functions that are, deep down, scripts that call base functions and key symbols
+            inv = Compute inverse
+            abs = Compute absolute value of {x} -> {x}
+            arg = Compute argument of complex number
+            logbase = Compute base {x} log of {y}
+            root = Compute {x}th root of {y}
+            exp = Compute e^{x}
+            SQR = Compute {x}^2
+            SQRT = Compute square root of {x}
+
+    Variable:
+        A variable

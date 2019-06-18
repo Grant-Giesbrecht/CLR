@@ -1,0 +1,12 @@
+CC = clang++ -std=c++11
+
+LIBS = -lIEGA
+
+all: clr.cpp clr_interpret.o clr_base_functions.o
+	$(CC) -o clr clr.cpp clr_interpret.o clr_base_functions.o $(LIBS)
+
+clr_interpret.o: clr_interpret.cpp
+	$(CC) -c clr_interpret.cpp
+
+clr_base_functions.o: clr_base_functions.cpp
+	$(CC) -c clr_base_functions.cpp

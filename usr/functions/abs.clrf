@@ -1,0 +1,20 @@
+@ABS
+#Preserve {T}
+UP
+STO temp
+DN
+# Compute absolute value
+STO temp2
+SQR
+RCL temp2
+/
+#Restore {T}
+RCL temp
+DN
+~************** ABS Help ****************
+~
+~Computes the absolute value of {x}.
+~
+~|{x}| -> {x}
+~
+~Type: Interpreted Function

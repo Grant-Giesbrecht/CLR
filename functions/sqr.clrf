@@ -1,0 +1,18 @@
+@SQR
+#Preserve {T}
+UP
+STO temp
+DN
+# Compute square
+2 ^
+# Restore {T}
+UP
+RCL temp
+DN
+~************** SQR Help ****************
+~
+~Computes {x}^2.
+~
+~{x}^2 -> {x}
+~
+~Type: Interpreted Function
