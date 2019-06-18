@@ -39,8 +39,6 @@ CLR (Command Line RPN) interprets every token as one of the following: (And chec
         DELETE = Delete variable
         ADDFN = Add function from file
 
-        LSFN = List function
-
     Function:
         Base Function: Functions that are hard-coded into CLR
             sin = Compute sin{x}

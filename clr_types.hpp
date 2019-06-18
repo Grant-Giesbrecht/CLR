@@ -87,6 +87,7 @@ typedef struct{
     std::vector<clr_function> functions; //Vector of all CLR functions (interpreted & base)
     std::vector<variable> variables; //Vector of all CLR variables
     bool running; //Specifies if main loop should still run
+	std::string help_dir; //Directory in which to search for help files.
 }clr_state;
 
 #endif

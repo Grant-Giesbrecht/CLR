@@ -9,6 +9,8 @@
 
 #define FUNCTION_LIST_FILE "/usr/local/share/clr/interpreted_functions.list"
 #define FUNCTION_DEFAULT_DIR "/usr/local/share/clr/functions"
+#define HELP_DIR "/usr/local/share/clr/docs/"
+
 //CXCOMPILE make -f clr_makefile
 //CXCOMPILE ./clr
 //CXGENRUN FALSE
@@ -23,6 +25,7 @@ int main(int argc, char** argv){
     //Create and initialize 'state' object
     clr_state state;
     state.running = true;
+    state.help_dir = HELP_DIR;
     fill_keywords(&state); //Populate keywords
     fill_critical_variables(&state); //Populate critical variables (i+j)
 
@@ -45,19 +48,22 @@ int main(int argc, char** argv){
     string line, print_out;
     bool success;
     vector<token> tks;
+    comp last_x, last_y, last_z, last_t;
     while (state.running){
         tks.clear();
         cout << "> " << std::flush;
         getline(cin, line);
 
+        last_x = state.x; last_y = state.y;last_z = state.z; last_t = state.t; //Save register values from before execution...
         interpret_clr(line, &state, print_out);
         cout << print_out;
 
-        cout << "\tT: " << dtos(state.t.real(), 4, 3) << endl;
-        cout << "\tZ: " << dtos(state.z.real(), 4, 3) << endl;
-        cout << "\tY: " << dtos(state.y.real(), 4, 3) << endl;
-        cout << "\tX: " << dtos(state.x.real(), 4, 3) << endl;
-
+        if (last_x != state.x || last_y != state.y || last_z != state.z || last_t != state.t){
+            cout << "\tT: " << dtos(state.t.real(), 4, 3) << endl;
+            cout << "\tZ: " << dtos(state.z.real(), 4, 3) << endl;
+            cout << "\tY: " << dtos(state.y.real(), 4, 3) << endl;
+            cout << "\tX: " << dtos(state.x.real(), 4, 3) << endl;
+        }
 
         // tks = clr_lex(line, &state, success);
         // if (success){

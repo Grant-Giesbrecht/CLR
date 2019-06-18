@@ -21,12 +21,12 @@ bool interpret_clr(std::string input, clr_state* state, std::string& print_out){
 		return false;
 	}
 
-	//Print tokens (for debugging!)
-	print_out = print_out + "Tokens:\n";
-    for (size_t t = 0 ; t < tks.size() ; t++){
-        print_out = print_out + "\t(" + dtos(t, 0, 3) + ") " + tokenstr(tks[t]) + "\n";
-    }
-	print_out = print_out + "\n";
+	// //Print tokens (for debugging!)
+	// print_out = print_out + "Tokens:\n";
+    // for (size_t t = 0 ; t < tks.size() ; t++){
+    //     print_out = print_out + "\t(" + dtos(t, 0, 3) + ") " + tokenstr(tks[t]) + "\n";
+    // }
+	// print_out = print_out + "\n";
 
 
 	//Parse tokens, create an abstract syntax tree
@@ -36,11 +36,11 @@ bool interpret_clr(std::string input, clr_state* state, std::string& print_out){
 		return false;
 	}
 
-	//Print ASTs (for debugging!)
-	print_out = print_out + "Trees:\n";
-	for (size_t t = 0 ; t < trees.size() ; t++){
-		print_out = print_out + "\t("+dtos(t, 0, 3)+")" + aststr(trees[t]) + "\n";
-	}
+	// //Print ASTs (for debugging!)
+	// print_out = print_out + "Trees:\n";
+	// for (size_t t = 0 ; t < trees.size() ; t++){
+	// 	print_out = print_out + "\t("+dtos(t, 0, 3)+")" + aststr(trees[t]) + "\n";
+	// }
 
 	//Evaluates an AST (or a subsection of an AST)
 	token out;
@@ -239,30 +239,41 @@ token ast_eval(ast tree, clr_state* state, bool& success){
 	for (size_t v = 0 ; v < state->variables.size() ; v++){
 		var_names.push_back(state->variables[v].name);
 	}
+	vector<string> fn_names;
+	for (size_t f = 0 ; f < state->functions.size() ; f++){
+		fn_names.push_back(state->functions[f].name);
+	}
 
 	//The base will be a ksym, kwrd, or func. Determine which (each handles differently)
 	if (tree.tk.type == "ksym"){ //Key Symbol
 
-		//Push to stack UNLESS 1.) Comment or 2.) No number preceeded the key symbol
-		if (tree.tk.valstr != "#" && tree.next.size() > 0){
+		//Push to stack UNLESS 1.) Comment or 2.) No number preceeded the key symbol (unless only ';' was submitted)
+		if (tree.tk.valstr != "#" && (tree.next.size() > 0 || tree.tk.valstr == ";" )){
 			//The following block of code was the subroutine for ';'. I then realized that
 			// you need to run the ';' code even for addition, subtraction, etc because
 			// you need the number/variable to get loaded into the 'x' register.
 			if (tree.next.size() != 1){ //Ensure x register has a value ready
-				success = false;
-				tk.valstr = "Only one token should preceed ';'. Instead "+dtos(tree.next.size(),0,3)+" were detected.";
-				return tk;
-			}
-			if (tree.next[0].tk.type != "num" && tree.next[0].tk.type != "var"){
+				if (tree.tk.valstr == ";"){ //x reg val not needed if ';' to just push up stack
+					state->t = state->z;
+					state->z = state->y;
+					state->y = state->x;
+				}else{
+					success = false;
+					tk.valstr = "Only one token should preceed ';'. Instead "+dtos(tree.next.size(),0,3)+" were detected.";
+					return tk;
+				}
+			}else if (tree.next[0].tk.type != "num" && tree.next[0].tk.type != "var"){
 				success = false;
 				tk.valstr = "A numeric type or variable must preceed the ';' operator.";
 				return tk;
+			}else{
+				state->t = state->z;
+				state->z = state->y;
+				state->y = state->x;
+				state->x = tree.next[0].tk.valnum;
+				//End ';' code
 			}
-			state->t = state->z;
-			state->z = state->y;
-			state->y = state->x;
-			state->x = tree.next[0].tk.valnum;
-			//End ';' code
+
 		}
 
 		if (tree.tk.valstr == "+"){
@@ -444,6 +455,170 @@ token ast_eval(ast tree, clr_state* state, bool& success){
 			system("clear");
 		}else if (to_uppercase(tree.tk.valstr) == "HELP"){
 
+			/*
+			FLAGS:
+			-intro: prints intro help page (default)
+			-v or -verbose: prints verbose help page
+			-lf: lists all functions
+			-lc or -lk: lists all commands (TODO)
+			-l: prints all information available for requested page. Affects:
+				-lf - (prints if interpreted/compiled. No. lines if interpreted)
+			-vf: View function - prints commands of interpreted function
+			*/
+
+			string help_operation = "intro";
+			bool print_long = false;
+
+			vector<string> pages;
+
+			//Process flags if present
+			bool flag_ready = false;
+			if (tree.next.size() > 0){
+				for (size_t n = 0 ; n < tree.next.size() ; n++){ //For each extra token
+					if (tree.next[n].tk.type == "ksym" && tree.next[n].tk.valstr == "-"){
+						flag_ready = true;
+					}else if (flag_ready && tree.next[n].tk.type == "var" && (to_uppercase(tree.next[n].tk.valstr) == "INTRO")){
+						help_operation = "intro";
+						flag_ready = false;
+					}else if (flag_ready && tree.next[n].tk.type == "var" && (to_uppercase(tree.next[n].tk.valstr) == "V" || to_uppercase(tree.next[n].tk.valstr) == "VERBOSE")){
+						help_operation = "verbose";
+						flag_ready = false;
+					}else if (flag_ready && tree.next[n].tk.type == "var" && (to_uppercase(tree.next[n].tk.valstr) == "LF")){
+						help_operation = "list_functions";
+						flag_ready = false;
+					}else if (flag_ready && tree.next[n].tk.type == "var" && (to_uppercase(tree.next[n].tk.valstr) == "LC" || to_uppercase(tree.next[n].tk.valstr) == "LK")){
+						help_operation = "list_keywords";
+						flag_ready = false;
+					}else if (flag_ready && tree.next[n].tk.type == "var" && (to_uppercase(tree.next[n].tk.valstr) == "L")){ //If flag is 'print_long'
+						print_long = true;
+						flag_ready = false;
+					}else if (flag_ready && tree.next[n].tk.type == "var" && (to_uppercase(tree.next[n].tk.valstr) == "VF")){ //If flag is 'print_long'
+						help_operation = "view_function";
+						flag_ready = false;
+					}else if(flag_ready){
+						cout << "\t Ignoring Unrecognized flag '-" + tree.next[n].tk.valstr + "'." << endl;
+						flag_ready = false;
+					}else if(tree.next[n].tk.type == "var" || tree.next[n].tk.type == "func" || tree.next[n].tk.type == "kwrd"){ //Must be a page to search for
+						if (help_operation == "intro") help_operation = "search";
+						pages.push_back(tree.next[n].tk.valstr);
+					}
+				}
+			}
+
+			if (help_operation == "list_functions"){
+				if (print_long){
+					cout << "Functions:" << endl;
+					for (size_t f = 0 ; f < state->functions.size() ; f++){
+						cout << "\t" << state->functions[f].name << " - \t";
+						if (state->functions[f].interpreted){
+							cout << "Interpreted function consistning of " << state->functions[f].commands.size() << " commands " << endl;
+						}else{
+							cout << "Compiled function" << endl;
+						}
+
+					}
+				}else{
+					cout << "Functions:" << endl;
+					for (size_t f = 0 ; f < state->functions.size() ; f++){
+						cout << "\t" << state->functions[f].name << endl;
+					}
+				}
+			}else if(help_operation == "list_keywords"){
+				cout << "Keywords:" << endl;
+				for (size_t k = 0; k < state->keywords.size() ; k++){
+					cout << "\t" << state->keywords[k] << endl;
+				}
+			}else if(help_operation == "intro"){
+				if (!print_file(state->help_dir + "clr_intro_help.htx", 1)){
+					success = false;
+					tk.valstr = "Failed to open file '" + state->help_dir + "clr_intro_help.htx" + "'.";
+					return tk;
+				}
+			}else if(help_operation == "verbose"){
+				if (!print_file(state->help_dir + "clr_verbose_help.htx", 1)){
+					success = false;
+					tk.valstr = "Failed to open file '" + state->help_dir + "clr_intro_help.htx" + "'.";
+					return tk;
+				}
+			}else if(help_operation == "view_function"){
+				for (size_t p = 0 ; p < pages.size() ; p++){
+
+					//Scan all functions, look for the matching function
+					size_t fidx = 0; //This will hold the index
+					bool found = false;
+					for ( ; fidx < state->functions.size() ; fidx++){
+						if (state->functions[fidx].name == to_uppercase(pages[p])){ //If this is the function...
+							found = true; //Indicate that it was found
+							break; //GTFO
+						}
+					}
+
+					//Ensure function was found
+					if (!found){
+						continue; //Skip...
+					}
+
+					if (!state->functions[fidx].interpreted){
+						cout << "ERROR: Can not print contents of compiled functions." << endl;
+					}else{
+						//Print function contents
+						cout << "Function: " << state->functions[fidx].name << endl;
+						for (size_t l = 0 ; l < state->functions[fidx].commands.size() ; l++){
+							cout << "\t[" << l << "]: " << state->functions[fidx].commands[l] << endl;
+						}
+					}
+
+
+				}
+			}else if(help_operation == "search"){
+				vector<string> failed;
+				for (size_t p = 0 ; p < pages.size() ; p++){
+					if(strvec_contains(state->keywords, to_uppercase(pages[p])) != -1){ //keyword
+						if (!print_file(state->help_dir + "clr_" + to_lowercase(pages[p]) + "_help.htx", 1)){
+							failed.push_back("Keyword: " + pages[p]);
+						}
+					}else if(strvec_contains(fn_names, to_uppercase(pages[p])) != -1){ //Function
+
+						//Scan all functions, look for the matching function
+						size_t fidx = 0; //This will hold the index
+						bool found = false;
+						for ( ; fidx < state->functions.size() ; fidx++){
+							if (state->functions[fidx].name == to_uppercase(pages[p])){ //If this is the function...
+								found = true; //Indicate that it was found
+								break; //GTFO
+							}
+						}
+
+						//Ensure function was found
+						if (!found){
+							failed.push_back("Function: " + pages[p]);
+							continue; //Skip...
+						}
+
+						if (state->functions[fidx].helpstr.length() < 1){
+							cout << "RESOURCE ERROR: Page for function '" << state->functions[fidx].name <<  "' is blank." << endl;
+						}
+
+						cout << state->functions[fidx].helpstr << endl;
+					}else{
+						failed.push_back("Unrecognized: " + pages[p]);
+					}
+				}
+
+				if (failed.size() == 1){
+					cout << "RESOURCE ERROR: Failed to locate 1 page for " << failed[0] << endl;
+				}else if(failed.size() > 1){
+					cout << "RESOURCE ERROR: Failed to locate " <<  failed.size() << " pages:" << endl;
+					for (size_t f = 0 ; f < failed.size() ; f++){
+						cout << "\t" << failed[f] << endl;
+					}
+				}
+			}else{
+				success = false;
+				tk.valstr = "Failed to interpret 'help_operation'. This is a bug in clr_interpret.cpp.";
+				return tk;
+			}
+
 		}else if (to_uppercase(tree.tk.valstr) == "CD"){
 
 		}else if (to_uppercase(tree.tk.valstr) == "PWD"){ //Execute 'pwd' in terminal. Prints full path
@@ -458,39 +633,6 @@ token ast_eval(ast tree, clr_state* state, bool& success){
 
 		}else if (to_uppercase(tree.tk.valstr) == "ADDFN"){
 
-		}else if (to_uppercase(tree.tk.valstr) == "LSFN"){ //List all CLR functions
-
-			bool print_long = false;
-
-			//Process flags if present
-			if (tree.next.size() > 0){
-				for (size_t n = 0 ; n < tree.next.size() ; n++){ //For each extra token
-					if (tree.next[n].tk.valstr == "l" || tree.next[n].tk.valstr == "L"){ //If flag is 'print_long'
-						print_long = true;
-					}else{
-						cout << "\t Ignoring Unrecognized flag '" + tree.next[n].tk.valstr + "'." << endl;
-					}
-				}
-			}
-
-			if (print_long){
-				cout << "Functions:" << endl;
-				for (size_t f = 0 ; f < state->functions.size() ; f++){
-					cout << "\t" << state->functions[f].name << "\n\t\tInterpreted: " << bool_to_str(state->functions[f].interpreted) << "\n\t\tNo. Commands: " << state->functions[f].commands.size() << endl;
-				}
-			}else{
-				cout << "Functions:" << endl;
-				for (size_t f = 0 ; f < state->functions.size() ; f++){
-					cout << "\t" << state->functions[f].name << endl;
-				}
-			}
-		//
-		// }else if (to_uppercase(tree.tk.valstr) == ""){
-
-		}else{
-			success = false;
-			tk.valstr = "Failed to identify function '" + tree.tk.valstr + "'.";
-			return tk;
 		}
 
 	}else if(tree.tk.type == "num"){ //Number
@@ -554,7 +696,6 @@ void fill_keywords(clr_state* state){
 	state->keywords.push_back("RUN");
 	state->keywords.push_back("DELETE");
 	state->keywords.push_back("ADDFN");
-	state->keywords.push_back("LSFN");
 
 }
 
