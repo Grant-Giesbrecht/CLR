@@ -26,6 +26,7 @@ typedef std::complex<double> comp;
  	var = variable
  	kwrd = key word
  	func = function
+	flag = flag
  */
 typedef struct{
 	std::string type;
@@ -88,6 +89,7 @@ typedef struct{
     std::vector<variable> variables; //Vector of all CLR variables
     bool running; //Specifies if main loop should still run
 	std::string help_dir; //Directory in which to search for help files.
+	bool developer_mode; //Operate in developer mode - display AST, registers, etc.
 }clr_state;
 
 #endif

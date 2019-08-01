@@ -21,12 +21,14 @@ bool interpret_clr(std::string input, clr_state* state, std::string& print_out){
 		return false;
 	}
 
-	// //Print tokens (for debugging!)
-	// print_out = print_out + "Tokens:\n";
-    // for (size_t t = 0 ; t < tks.size() ; t++){
-    //     print_out = print_out + "\t(" + dtos(t, 0, 3) + ") " + tokenstr(tks[t]) + "\n";
-    // }
-	// print_out = print_out + "\n";
+	//Print tokens (in developer mode)
+	if (state->developer_mode){
+		print_out = print_out + "Tokens:\n";
+	    for (size_t t = 0 ; t < tks.size() ; t++){
+	        print_out = print_out + "\t(" + dtos(t, 0, 3) + ") " + tokenstr(tks[t]) + "\n";
+	    }
+		print_out = print_out + "\n";
+	}
 
 
 	//Parse tokens, create an abstract syntax tree
@@ -36,11 +38,13 @@ bool interpret_clr(std::string input, clr_state* state, std::string& print_out){
 		return false;
 	}
 
-	// //Print ASTs (for debugging!)
-	// print_out = print_out + "Trees:\n";
-	// for (size_t t = 0 ; t < trees.size() ; t++){
-	// 	print_out = print_out + "\t("+dtos(t, 0, 3)+")" + aststr(trees[t]) + "\n";
-	// }
+	//Print ASTs (for debugging!)
+	if (state->developer_mode){
+		print_out = print_out + "Trees:\n";
+		for (size_t t = 0 ; t < trees.size() ; t++){
+			print_out = print_out + "\t("+dtos(t, 0, 3)+")" + aststr(trees[t]) + "\n";
+		}
+	}
 
 	//Evaluates an AST (or a subsection of an AST)
 	token out;
@@ -87,17 +91,19 @@ vector<token> clr_lex(string input, clr_state* state, bool& success){
 
 		//Classify each word as a type of token
 		if (words[w] == "+" || words[w] == "-" || words[w] == "*"  || words[w] == "/" || words[w] == "^" || words[w] == ";" || words[w] == "#"){ //Key Symbol
-			//Set fields
-			temp_tok.type = "ksym";
-			temp_tok.valstr = words[w];
-
-			//Add to vector of tokens
-			tks.push_back(temp_tok);
 
 			//If comment, skip remainder of input
 			if (words[w] == "#"){
 				break;
+			}else{
+				//Set fields
+				temp_tok.type = "ksym";
+				temp_tok.valstr = words[w];
+
+				//Add to vector of tokens
+				tks.push_back(temp_tok);
 			}
+
 		}else if(isnum(words[w])){ //Number
 			//Set fields
 			temp_tok.type = "num";
@@ -148,6 +154,22 @@ vector<token> clr_lex(string input, clr_state* state, bool& success){
 		}
 
 	} //End for loop
+
+	//Loop through tokens - merge '-' token with next token if present. This forms a negative number or flag
+	for (size_t i = 0 ; i < tks.size() ; i++){
+		if (tks[i].type == "ksym" && tks[i].valstr == "-" && i+1 < tks.size() ){ // '-' detected before end
+			if (tks[i+1].type == "num"){ //If it's followed by a number
+				tks.erase(tks.begin()+i); //delete '-'
+				tks[i].valnum *= -1; //Change number sign
+				i--; //Decrement i
+			}else if(tks[i+1].type == "var"){ //If it's followed by a "variable name" convert them to a flag
+				tks.erase(tks.begin()+i); //Delete  '-'
+				tks[i].type = "flag"; //Convert variable to flag
+				tks[i].valstr = "-" + tks[i].valstr; //Add '-' to flag
+				i--; //Decrement i
+			} //Otherwise don't do anything
+		}
+	}
 
 	//Return tokens
 	return tks;
@@ -472,32 +494,22 @@ token ast_eval(ast tree, clr_state* state, bool& success){
 			vector<string> pages;
 
 			//Process flags if present
-			bool flag_ready = false;
 			if (tree.next.size() > 0){
 				for (size_t n = 0 ; n < tree.next.size() ; n++){ //For each extra token
-					if (tree.next[n].tk.type == "ksym" && tree.next[n].tk.valstr == "-"){
-						flag_ready = true;
-					}else if (flag_ready && tree.next[n].tk.type == "var" && (to_uppercase(tree.next[n].tk.valstr) == "INTRO")){
+					if (tree.next[n].tk.type == "flag" && (to_uppercase(tree.next[n].tk.valstr) == "-INTRO")){
 						help_operation = "intro";
-						flag_ready = false;
-					}else if (flag_ready && tree.next[n].tk.type == "var" && (to_uppercase(tree.next[n].tk.valstr) == "V" || to_uppercase(tree.next[n].tk.valstr) == "VERBOSE")){
+					}else if (tree.next[n].tk.type == "flag" && (to_uppercase(tree.next[n].tk.valstr) == "-V" || to_uppercase(tree.next[n].tk.valstr) == "VERBOSE")){
 						help_operation = "verbose";
-						flag_ready = false;
-					}else if (flag_ready && tree.next[n].tk.type == "var" && (to_uppercase(tree.next[n].tk.valstr) == "LF")){
+					}else if (tree.next[n].tk.type == "flag" && (to_uppercase(tree.next[n].tk.valstr) == "-LF")){
 						help_operation = "list_functions";
-						flag_ready = false;
-					}else if (flag_ready && tree.next[n].tk.type == "var" && (to_uppercase(tree.next[n].tk.valstr) == "LC" || to_uppercase(tree.next[n].tk.valstr) == "LK")){
+					}else if (tree.next[n].tk.type == "flag" && (to_uppercase(tree.next[n].tk.valstr) == "-LC" || to_uppercase(tree.next[n].tk.valstr) == "LK")){
 						help_operation = "list_keywords";
-						flag_ready = false;
-					}else if (flag_ready && tree.next[n].tk.type == "var" && (to_uppercase(tree.next[n].tk.valstr) == "L")){ //If flag is 'print_long'
+					}else if (tree.next[n].tk.type == "flag" && (to_uppercase(tree.next[n].tk.valstr) == "-L")){ //If flag is 'print_long'
 						print_long = true;
-						flag_ready = false;
-					}else if (flag_ready && tree.next[n].tk.type == "var" && (to_uppercase(tree.next[n].tk.valstr) == "VF")){ //If flag is 'print_long'
+					}else if (tree.next[n].tk.type == "flag" && (to_uppercase(tree.next[n].tk.valstr) == "-VF")){ //If flag is 'print_long'
 						help_operation = "view_function";
-						flag_ready = false;
-					}else if(flag_ready){
-						cout << "\t Ignoring Unrecognized flag '-" + tree.next[n].tk.valstr + "'." << endl;
-						flag_ready = false;
+					}else if(tree.next[n].tk.type == "flag"){
+						cout << "\t Ignoring Unrecognized flag '" + tree.next[n].tk.valstr + "'." << endl;
 					}else if(tree.next[n].tk.type == "var" || tree.next[n].tk.type == "func" || tree.next[n].tk.type == "kwrd"){ //Must be a page to search for
 						if (help_operation == "intro") help_operation = "search";
 						pages.push_back(tree.next[n].tk.valstr);
@@ -529,13 +541,13 @@ token ast_eval(ast tree, clr_state* state, bool& success){
 					cout << "\t" << state->keywords[k] << endl;
 				}
 			}else if(help_operation == "intro"){
-				if (!print_file(state->help_dir + "clr_intro_help.htx", 1)){
+				if (!print_file(state->help_dir + "clr_intro_help.htx", 0)){
 					success = false;
 					tk.valstr = "Failed to open file '" + state->help_dir + "clr_intro_help.htx" + "'.";
 					return tk;
 				}
 			}else if(help_operation == "verbose"){
-				if (!print_file(state->help_dir + "clr_verbose_help.htx", 1)){
+				if (!print_file(state->help_dir + "clr_verbose_help.htx", 0)){
 					success = false;
 					tk.valstr = "Failed to open file '" + state->help_dir + "clr_intro_help.htx" + "'.";
 					return tk;
@@ -574,7 +586,7 @@ token ast_eval(ast tree, clr_state* state, bool& success){
 				vector<string> failed;
 				for (size_t p = 0 ; p < pages.size() ; p++){
 					if(strvec_contains(state->keywords, to_uppercase(pages[p])) != -1){ //keyword
-						if (!print_file(state->help_dir + "clr_" + to_lowercase(pages[p]) + "_help.htx", 1)){
+						if (!print_file(state->help_dir + "clr_" + to_lowercase(pages[p]) + "_help.htx", 0)){
 							failed.push_back("Keyword: " + pages[p]);
 						}
 					}else if(strvec_contains(fn_names, to_uppercase(pages[p])) != -1){ //Function
@@ -631,6 +643,14 @@ token ast_eval(ast tree, clr_state* state, bool& success){
 
 		}else if (to_uppercase(tree.tk.valstr) == "DELETE"){
 
+		}else if (to_uppercase(tree.tk.valstr) == "DEVMODE"){ //Enter or exit developer mode
+			state->developer_mode = !state->developer_mode;
+			cout << "Developer mode: ";
+			if (state->developer_mode){
+				cout << "ON" << endl;
+			}else{
+				cout << "OFF" << endl;
+			}
 		}else if (to_uppercase(tree.tk.valstr) == "ADDFN"){
 
 		}
@@ -696,6 +716,7 @@ void fill_keywords(clr_state* state){
 	state->keywords.push_back("RUN");
 	state->keywords.push_back("DELETE");
 	state->keywords.push_back("ADDFN");
+	state->keywords.push_back("DEVMODE");
 
 }
 
@@ -896,8 +917,13 @@ bool load_functions(std::string path, std::string default_dir, clr_state* state)
 				temp_func.name = fline.substr(1); //Add remainder of line as function name
 			}else if (fline[0] == '~'){ //Look for the funciton description
 				temp_func.helpstr = temp_func.helpstr + fline.substr(1) + "\n"; //Add remainder of line as a help file line
-			}else if (fline[0] == '#'){ //Is a comment. Skip!
-				//Do nothing
+
+			//NOTE: I commented out the below two lines so comments are loaded
+			//	in as function contents. This way -vf lets you see the writer's
+			//	comments for improved readability.
+
+			// }else if (fline[0] == '#'){ //Is a comment. Skip!
+			// 	//Do nothing
 			}else{ //Line is a command line
 				temp_func.commands.push_back(fline);
 			}

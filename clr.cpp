@@ -22,10 +22,19 @@ int main(int argc, char** argv){
     //********************************************************//
     //******************* INITIALIZE STATE *******************//
 
+    bool run_dev_mode = false;
+    for (size_t i = 0 ; i < argc ; i++){
+        if (to_uppercase(argv[i]) == "-DEV"){
+            cout << "Starting CLR in developer mode." << endl;
+            run_dev_mode = true;
+        }
+    }
+
     //Create and initialize 'state' object
     clr_state state;
     state.running = true;
     state.help_dir = HELP_DIR;
+    state.developer_mode = run_dev_mode;
     fill_keywords(&state); //Populate keywords
     fill_critical_variables(&state); //Populate critical variables (i+j)
 

@@ -33,6 +33,7 @@ comp clrbf_acosh(comp x, comp y);
 comp clrbf_atanh(comp x, comp y);
 comp clrbf_log(comp x, comp y);
 comp clrbf_ln(comp x, comp y);
+comp clrbf_abs(comp x, comp y);
 
 void load_clr_base_functions(clr_state* state); //This isn't a base function - instead it loads them into a 'clr_state' struct. It also defines their help screens.
 

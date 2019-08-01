@@ -113,6 +113,13 @@ comp clrbf_ln(comp x, comp y){
     return log(x);
 }
 
+/*
+ Defines the base function 'abs'. Computes the absolute value of 'x'. 'y' unused.
+ */
+comp clrbf_abs(comp x, comp y){
+	return abs(x);
+}
+
  /*
  This isn't a base function - instead it loads them into a 'clr_state' struct.
  */
@@ -204,6 +211,12 @@ void load_clr_base_functions(clr_state* state){
     temp_func.fnptr = clrbf_ln;
     temp_func.helpstr = "*************** LN Help ****************\n\nComputes the natural logarithm of {x}.\n\ncos({x}) -> {x}\n\nType: Base Function\n";
     state->functions.push_back(temp_func);
+	
+	//abs
+	temp_func.name = "ABS";
+	temp_func.fnptr = clrbf_abs;
+	temp_func.helpstr = "*************** ABS Help ****************\n\nComputes the absolute value of {x}.\n\nabs({x}) -> {x}\n\nType: Base Function\n";
+	state->functions.push_back(temp_func);
 
 
 }
